@@ -41,76 +41,91 @@ chmod +x setup.sh && ./setup.sh
 
 ---
 
-## 🧭 三种路由方案
+## 🧭 三种路由方案（官方 Provider 路线）
 
-根据当前机器的网络环境，选择最适合的方案：
-
-### 方案A：Codex++ 本地代理中转
-
-> **适用场景**：本机有 Codex++ 运行时（端口 57322），所有请求统一经过本地代理
-
-```
-Hermes ──→ Codex++ 代理 (127.0.0.1:57322) ──→ DeepSeek / 其他后端
-```
-
-```bash
-# 启用方案A
-hermes config set model.provider custom
-hermes config set model.base_url http://127.0.0.1:57322/v1
-hermes config set model.default deepseek-v4-flash
-# api_key 从 ~/.codex/auth.json 的 OPENAI_API_KEY 读取
-python3 -c "import json; key=json.load(open(r'~/.codex/auth.json'))['OPENAI_API_KEY']; __import__('subprocess').run(['hermes','config','set','model.api_key',key])"
-```
-
-**优点**：统一管理所有 API 请求，Hermes 和 Codex CLI 共享一条链路  
-**缺点**：依赖 Codex++ 进程（端口 57322），换机器需换方案
+根据当前机器的网络环境，选择最适合的方案。官方建议用 `hermes model` 或 `hermes setup` 交互式配置，下面给出 CLI 等效命令。
 
 ---
 
-### 方案B：DeepSeek 直连（默认）
+### 方案A：Codex++ 本地代理中转
 
-> **适用场景**：任何能访问 `api.deepseek.com` 的机器，零依赖最稳定
+> **适用场景**：本机有 Codex++ 运行时（端口 57322），所有请求统一经过本地代理  
+> **不通过 `hermes setup` 选择**，需手动配置 custom provider
+
+```
+Hermes ──→ Codex++ 代理 (127.0.0.1:57322) ──→ DeepSeek
+```
+
+```bash
+# 从 Codex 的 auth.json 读取 API Key
+python3 -c "import json;key=json.load(open(r'~/.codex/auth.json'))['OPENAI_API_KEY'];__import__('subprocess').run(['hermes','config','set','model.api_key',key])"
+
+# 配置 custom provider
+hermes config set model.provider custom
+hermes config set model.base_url http://127.0.0.1:57322/v1
+hermes config set model.default deepseek-v4-flash
+```
+
+---
+
+### 方案B：DeepSeek 直连（官方 Provider）
+
+> **适用场景**：任意能访问 `api.deepseek.com` 的机器，零依赖  
+> **官方文档**：[Hermes AI Providers](https://hermes-agent.nousresearch.com/docs/integrations/providers) → DeepSeek  
+> **配置方式**：`DEEPSEEK_API_KEY` in `~/.hermes/.env` (provider: deepseek)
 
 ```
 Hermes ──→ DeepSeek API (api.deepseek.com)
 ```
 
+**交互式配置（推荐）：**
 ```bash
-# 启用方案B（默认）
+hermes setup
+# 选择 DeepSeek，填入 API Key、Base URL、模型
+```
+
+**或 CLI 等效：**
+```bash
+# 1. 在 .env 中写入密钥
+echo 'DEEPSEEK_API_KEY=你的密钥' >> "$HERMES_HOME/.env"
+
+# 2. 配置 Provider
 hermes config set model.provider deepseek
 hermes config set model.base_url https://api.deepseek.com/v1
 hermes config set model.default deepseek-v4-flash
-hermes config set model.api_key ''
-# .env 中设置 DEEPSEEK_API_KEY=***
 ```
-
-**优点**：零依赖，最稳定，新机器首选  
-**缺点**：仅限 DeepSeek 模型
 
 ---
 
-### 方案C：OpenAI Codex OAuth（GPT）
+### 方案C：OpenAI Codex / ChatGPT OAuth（官方 Provider）
 
-> **适用场景**：网络无限制（能访问 `chatgpt.com`），有 ChatGPT 订阅
+> **适用场景**：网络无限制（能访问 `chatgpt.com`），有 ChatGPT 订阅  
+> **官方文档**：[Hermes AI Providers](https://hermes-agent.nousresearch.com/docs/integrations/providers) → OpenAI Codex  
+> **配置方式**：`hermes model (ChatGPT OAuth, uses Codex models)`
 
 ```
-Hermes ──→ ChatGPT Codex API (OAuth) ──→ GPT-4o / 其他
+Hermes ──→ ChatGPT Codex API (chatgpt.com/backend-api/codex) ──→ GPT-4o
 ```
 
+**交互式配置（推荐）：**
 ```bash
-# 1️⃣ OAuth 认证（首次只需一次）
+hermes model
+# 选择 7. OpenAI → Codex CLI / ChatGPT OAuth
+# 完成设备码 OAuth 登录
+```
+
+**或 CLI 等效：**
+```bash
+# 1. OAuth 认证（首次只需一次）
 hermes auth add openai-codex
 # 浏览器打开 https://auth.openai.com/codex/device，输入验证码
 
-# 2️⃣ 启用方案C
+# 2. 切换 Provider
 hermes config set model.provider openai-codex
 hermes config set model.default gpt-4o
-hermes config set model.base_url ''
-hermes config set model.api_key ''
 ```
 
-**优点**：用 ChatGPT 订阅直接调 GPT 模型，无需 API Key  
-**缺点**：需要能访问 `chatgpt.com` 的网络环境
+> 插件内置 base_url 为 `https://chatgpt.com/backend-api/codex`，无需手动设置
 
 ---
 

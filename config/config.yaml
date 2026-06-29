@@ -28,7 +28,12 @@
 # ═══════════════════════════════════════════════════════════════
 
 # ── 当前选用的方案（可手动切换） ──────────────────────────
-# 默认使用 方案B (DeepSeek 直连)，适合任意新机器
+# 默认使用 方案B (DeepSeek Provider — 官方路线)
+# 官方配置方式：
+#   - 交互式: hermes setup → 选择 DeepSeek → 填 API Key / Base URL / 模型
+#   - 配置文件: DEEPSEEK_API_KEY in ~/.hermes/.env (provider: deepseek)
+#
+# 也可用 hermes model 交互式切换，或在 config.yaml 中直接编辑：
 model:
   default: deepseek-v4-flash
   provider: deepseek
